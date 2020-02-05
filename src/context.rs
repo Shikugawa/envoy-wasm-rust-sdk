@@ -1,6 +1,10 @@
+use crate::host::*;
 use lazy_static::lazy_static;
+use log::info;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::ffi::CString;
+use std::ptr::{null, null_mut};
+use std::sync::{Arc, Mutex};
 
 pub trait RootContext {
   fn on_start(&self) -> u32;
@@ -10,57 +14,41 @@ pub trait Context {
 }
 
 pub trait RootContextFactory {
-  fn create(&self) -> Box<dyn Sync + RootContext>;
+  fn create(&self) -> Arc<Mutex<dyn Sync + RootContext + Send>>;
 }
 pub trait ContextFactory {
-  fn create(&self) -> Box<dyn Sync + Context>;
+  fn create(&self) -> Arc<dyn Sync + Context + Send>;
 }
 
-struct RootContextFactoryMap {
-  hangar: HashMap<&'static str, &'static (dyn RootContextFactory + Sync)>,
+struct RootContextFactoryMap<'a> {
+  pub hangar: HashMap<&'static str, &'a Box<dyn RootContextFactory + Sync>>,
 }
 
 // HashMap Wrapper
-impl RootContextFactoryMap {
-  fn new() -> RootContextFactoryMap {
+impl<'a> RootContextFactoryMap<'a> {
+  fn new() -> RootContextFactoryMap<'a> {
     RootContextFactoryMap {
       hangar: HashMap::new(),
     }
   }
-
-  fn add<U: RootContextFactory + Sync>(&mut self, root_id: &'static str, factory: &'static U) {
-    self.hangar.insert(root_id, factory);
-  }
-
-  fn get(&self, root_id: &str) -> Option<&&(dyn RootContextFactory + Sync)> {
-    self.hangar.get(root_id)
-  }
 }
 
 // HashMap Wrapper
-struct ContextFactoryMap {
-  hangar: HashMap<&'static str, &'static (dyn ContextFactory + Sync)>,
+struct ContextFactoryMap<'a> {
+  hangar: HashMap<&'static str, &'a Box<dyn ContextFactory + Sync>>,
 }
 
-impl ContextFactoryMap {
-  fn new() -> ContextFactoryMap {
+impl<'a> ContextFactoryMap<'a> {
+  fn new() -> ContextFactoryMap<'a> {
     ContextFactoryMap {
       hangar: HashMap::new(),
     }
-  }
-
-  fn add<U: ContextFactory + Sync>(&mut self, root_id: &'static str, factory: &'static U) {
-    self.hangar.insert(root_id, factory);
-  }
-
-  fn get(&self, root_id: &str) -> Option<&&(dyn ContextFactory + Sync)> {
-    self.hangar.get(root_id)
   }
 }
 
 // HashMap Wrapper
 struct RootContextMap {
-  hangar: HashMap<u32, &'static (dyn RootContext + Sync)>,
+  pub hangar: HashMap<u32, Arc<Mutex<dyn RootContext + Sync + Send>>>,
 }
 
 impl RootContextMap {
@@ -69,19 +57,11 @@ impl RootContextMap {
       hangar: HashMap::new(),
     }
   }
-
-  fn add<U: RootContext + Sync>(&mut self, root_context_id: u32, context: &'static U) {
-    self.hangar.insert(root_context_id, context);
-  }
-
-  fn get(&self, root_context_id: u32) -> Option<&&(dyn RootContext + Sync)> {
-    self.hangar.get(&root_context_id)
-  }
 }
 
 // HashMap Wrapper
 struct ContextMap {
-  hangar: HashMap<u32, &'static (dyn Context + Sync)>,
+  hangar: HashMap<u32, Arc<dyn Context + Sync + Send>>,
 }
 
 impl ContextMap {
@@ -90,55 +70,94 @@ impl ContextMap {
       hangar: HashMap::new(),
     }
   }
-
-  fn add<U: Context + Sync>(&mut self, context_id: u32, context: &'static U) {
-    self.hangar.insert(context_id, context);
-  }
-
-  fn get(&self, context_id: u32) -> Option<&&(dyn Context + Sync)> {
-    self.hangar.get(&context_id)
-  }
 }
 
 lazy_static! {
-  static ref ROOT_CONTEXT_FACTORY_MAP: Mutex<RootContextFactoryMap> =
+  static ref ROOT_CONTEXT_FACTORY_MAP: Mutex<RootContextFactoryMap<'static>> =
     Mutex::new(RootContextFactoryMap::new());
-  static ref CONTEXT_FACTORY_MAP: Mutex<ContextFactoryMap> = Mutex::new(ContextFactoryMap::new());
+  static ref CONTEXT_FACTORY_MAP: Mutex<ContextFactoryMap<'static>> =
+    Mutex::new(ContextFactoryMap::new());
   static ref ROOT_CONTEXT_MAP: Mutex<RootContextMap> = Mutex::new(RootContextMap::new());
   static ref CONTEXT_MAP: Mutex<ContextMap> = Mutex::new(ContextMap::new());
 }
 
-pub struct Registered {}
+struct SampleRootContextTest {}
 
-pub fn register_factory<T: RootContextFactory + Sync, U: ContextFactory + Sync>(
+impl RootContext for SampleRootContextTest {
+  fn on_start(&self) -> u32 {
+    // info!("Hello Envoy!");
+    0
+  }
+}
+
+pub fn register_factory(
   _root_id: &'static str,
-  _rcf: &'static T,
-  _cf: &'static U,
-) -> Registered {
-  ROOT_CONTEXT_FACTORY_MAP.lock().unwrap().add(_root_id, _rcf);
-  CONTEXT_FACTORY_MAP.lock().unwrap().add(_root_id, _cf);
-  Registered {}
+  _cf: &'static Box<dyn ContextFactory + Sync>,
+  _rcf: &'static Box<dyn RootContextFactory + Sync>,
+) {
+  info!("{}", _root_id);
+  let a: Arc<Mutex<dyn RootContext + Sync + Send>> = Arc::new(Mutex::new(SampleRootContextTest {}));
+  ROOT_CONTEXT_MAP
+    .lock()
+    .unwrap()
+    .hangar
+    .insert(0, Arc::clone(&a));
+  ROOT_CONTEXT_FACTORY_MAP
+    .lock()
+    .unwrap()
+    .hangar
+    .insert(_root_id, &_rcf);
+  CONTEXT_FACTORY_MAP
+    .lock()
+    .unwrap()
+    .hangar
+    .insert(_root_id, &_cf);
 }
 
-pub fn ensure_root_context(root_context_id: u32) -> Box<dyn Sync + RootContext> {
-  // match ROOT_CONTEXT_MAP.lock().unwrap().get(root_context_id) {
-  //   Some(root_context) => Box::new(root_context),
-  // None => {
-  let root_id = "my_root_id";
-  let root_context = match ROOT_CONTEXT_FACTORY_MAP.lock().unwrap().get(root_id) {
-    Some(root_factory) => root_factory.create(),
-    None => panic!("failed"),
+pub fn ensure_root_context<'a>(root_context_id: u32) -> Arc<Mutex<dyn RootContext + Sync + Send>> {
+  let root_context = match ROOT_CONTEXT_MAP
+    .lock()
+    .unwrap()
+    .hangar
+    .get(&root_context_id)
+  {
+    Some(x) => Arc::clone(x),
+    None => {
+      let path = "plugin_root_id";
+      let root_id: *const u8 = null::<u8>();
+      let root_id_size: *mut usize = null_mut::<usize>();
+      // proxy_get_property(path.as_ptr(), path.len(), &root_id, root_id_size);
+      // let root_id_str: String = CString::from_raw(root_id as *mut i8)
+      //   .into_string()
+      //   .unwrap_or(String::from("my_root_id"));
+      let root_id_str = String::from("my_root_id");
+      let root_context = match ROOT_CONTEXT_FACTORY_MAP
+        .lock()
+        .unwrap()
+        .hangar
+        .get(&root_id_str.as_ref())
+      {
+        Some(root_factory) => root_factory.create(),
+        None => panic!("failed"),
+      };
+      root_context
+    }
   };
+  if !ROOT_CONTEXT_MAP
+    .lock()
+    .unwrap()
+    .hangar
+    .contains_key(&root_context_id)
+  {
+    ROOT_CONTEXT_MAP
+      .lock()
+      .unwrap()
+      .hangar
+      .insert(root_context_id, Arc::clone(&root_context));
+  }
   root_context
-  // }
-  // }
 }
 
-pub fn ensure_context(context_id: u32) -> Box<dyn Sync + Context> {
-  let root_id = "my_root_id";
-  let context = match CONTEXT_FACTORY_MAP.lock().unwrap().get(root_id) {
-    Some(factory) => factory.create(),
-    None => panic!("failed"),
-  };
-  context
-}
+// pub fn ensure_context<'a>(root_context_id: u32, context_id: u32) -> &'a Box<dyn Sync + Context> {
+
+// }
