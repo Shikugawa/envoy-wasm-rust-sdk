@@ -1,18 +1,19 @@
-pub mod context;
+mod context;
 
 mod envoy_log;
 mod host;
 
+use crate::envoy_log::Logger;
 use context::*;
-use lazy_static::lazy_static;
-use log::debug;
+use log::info;
 
 // =============== RootContext ============================
 struct SampleRootContext {}
 
 impl RootContext for SampleRootContext {
-    fn on_start(&self) {
-        debug!("Hello Envoy!");
+    fn on_start(&self) -> u32 {
+        info!("Hello Envoy!");
+        0
     }
 }
 
@@ -28,12 +29,8 @@ impl RootContextFactory for SampleRootContextFactory {
 // =================== Context ============================
 struct SampleContext {}
 
-impl Context for SampleContext {}
-
-impl SampleContext {
-    fn on_create(&self) {
-        debug!("Hello Envoy!")
-    }
+impl Context for SampleContext {
+    fn on_create(&self) {}
 }
 
 struct SampleContextFactory {}
@@ -45,10 +42,15 @@ impl ContextFactory for SampleContextFactory {
 }
 // ========================================================
 
-lazy_static! {
-    static ref REGISTERED: Registered = register_factory(
-        "sample",
+/// Always hook into host's logging system.
+#[no_mangle]
+fn _start() {
+    Logger::init().unwrap();
+    info!("hello VM!");
+    register_factory(
+        "my_root_id",
         &SampleRootContextFactory {},
-        &SampleContextFactory {}
+        &SampleContextFactory {},
     );
+    info!("context factory registered!");
 }

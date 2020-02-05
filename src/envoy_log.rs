@@ -30,7 +30,7 @@ impl log::Log for Logger {
     let level = Logger::proxywasm_loglevel(record.level());
     let message = record.args().to_string();
     unsafe {
-      host::proxy_log(level, message.as_ptr(), message.len());
+      proxy_log(level, message.as_ptr(), message.len());
     }
   }
 
