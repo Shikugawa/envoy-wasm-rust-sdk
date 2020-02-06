@@ -2,6 +2,7 @@ mod context;
 
 mod envoy_log;
 mod host;
+
 use crate::envoy_log::Logger;
 use context::*;
 use lazy_static::*;
@@ -13,7 +14,7 @@ struct SampleRootContext {}
 
 impl RootContext for SampleRootContext {
     fn on_start(&self) -> u32 {
-        // info!("Hello Envoy!");
+        info!("Hello Envoy!");
         0
     }
 }
@@ -28,17 +29,26 @@ impl RootContextFactory for SampleRootContextFactory {
 // ========================================================
 
 // =================== Context ============================
-struct SampleContext {}
+struct SampleContext {
+    pub root_context: Arc<Mutex<dyn RootContext + Sync + Send>>,
+}
 
 impl Context for SampleContext {
-    fn on_create(&self) {}
+    fn on_create(&self) {
+        info!("Hello Envoy Create!");
+    }
 }
 
 struct SampleContextFactory {}
 
 impl ContextFactory for SampleContextFactory {
-    fn create(&self) -> Arc<dyn Context + Sync + Send> {
-        Arc::new(SampleContext {})
+    fn create(
+        &self,
+        _root_context: Arc<Mutex<dyn RootContext + Sync + Send>>,
+    ) -> Arc<Mutex<dyn Context + Sync + Send>> {
+        Arc::new(Mutex::new(SampleContext {
+            root_context: _root_context,
+        }))
     }
 }
 // ========================================================
@@ -52,20 +62,12 @@ lazy_static! {
         Box::new(SampleContextFactory {});
 }
 
-/// Always hook into host's logging system.
 #[no_mangle]
 fn _start() {
     Logger::init().unwrap();
-    unsafe {
-        if RETRY {
-            info!("hello VM!");
-            register_factory(
-                "my_root_id",
-                &SAMPLE_CONTEXT_FACTORY,
-                &SAMPLE_ROOT_CONTEXT_FACTORY,
-            );
-            info!("context factory registered!");
-            RETRY = false;
-        }
-    }
+    register_factory(
+        "my_root_id",
+        &SAMPLE_CONTEXT_FACTORY,
+        &SAMPLE_ROOT_CONTEXT_FACTORY,
+    );
 }

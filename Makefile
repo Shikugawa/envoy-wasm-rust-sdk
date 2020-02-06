@@ -5,4 +5,4 @@ nm:
 	wasm-objdump -d target/wasm32-unknown-unknown/release/proxy_wasm.wasm | grep func
 
 run:
-	envoy-wasm --config-path ./envoy.yaml
+	envoy-wasm --config-path ./envoy.yaml --concurrency 1

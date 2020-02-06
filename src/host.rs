@@ -1,6 +1,7 @@
 extern crate libc;
 
-use crate::context::ensure_root_context;
+use crate::context::*;
+use log::info;
 
 /// Allow host to allocate memory.
 #[no_mangle]
@@ -24,18 +25,44 @@ fn free(ptr: *mut u8) {
 }
 
 #[no_mangle]
-pub fn proxy_on_vm_start(_context_id: u32, _vm_configuration_size: u32) -> u32 {
-  ensure_root_context(_context_id).lock().unwrap().on_start();
+pub fn proxy_on_vm_start(_root_context_id: u32, _vm_configuration_size: u32) -> u32 {
+  info!("proxy_on_vm_start: root_context_id = {}", _root_context_id);
+  get_root_context(_root_context_id)
+    .lock()
+    .unwrap()
+    .on_start();
+  1
+}
+
+#[no_mangle]
+pub fn proxy_on_context_create(_root_context_id: u32, _context_id: u32) {
+  info!(
+    "proxy_on_context_create: root_context_id = {} _context_id = {}",
+    _root_context_id, _context_id
+  );
+  if _context_id != 0 {
+    ensure_context(_context_id, _root_context_id)
+      .lock()
+      .unwrap()
+      .on_create();
+  } else {
+    ensure_root_context(_root_context_id);
+  }
+}
+
+#[no_mangle]
+pub fn proxy_on_done(_context_id: u32) -> u32 {
+  info!("done {}", _context_id);
   1
 }
 
 /// Low-level Proxy-WASM APIs for the host functions.
 extern "C" {
   pub fn proxy_log(level: u32, message_data: *const u8, message_size: usize) -> u32;
-  pub fn proxy_get_property(
-    _path_ptr: *const u8,
-    _path_size: usize,
-    _value_ptr_ptr: *const *const u8,
-    _value_size_ptr: *mut usize,
-  ) -> u32;
+// pub fn proxy_get_property(
+//   _path_ptr: *const u8,
+//   _path_size: usize,
+//   _value_ptr_ptr: *const *const u8,
+//   _value_size_ptr: *mut usize,
+// ) -> u32;
 }
