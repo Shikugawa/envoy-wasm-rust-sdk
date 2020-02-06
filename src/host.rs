@@ -1,7 +1,6 @@
-extern crate libc;
-
 use crate::context::*;
 use log::info;
+use std::os::raw::c_char;
 
 /// Allow host to allocate memory.
 #[no_mangle]
@@ -59,10 +58,10 @@ pub fn proxy_on_done(_context_id: u32) -> u32 {
 /// Low-level Proxy-WASM APIs for the host functions.
 extern "C" {
   pub fn proxy_log(level: u32, message_data: *const u8, message_size: usize) -> u32;
-// pub fn proxy_get_property(
-//   _path_ptr: *const u8,
-//   _path_size: usize,
-//   _value_ptr_ptr: *const *const u8,
-//   _value_size_ptr: *mut usize,
-// ) -> u32;
+  pub fn proxy_get_property(
+    _path_ptr: *const c_char,
+    _path_size: usize,
+    _value_ptr_ptr: *const *mut c_char,
+    _value_size_ptr: *mut usize,
+  ) -> u32;
 }

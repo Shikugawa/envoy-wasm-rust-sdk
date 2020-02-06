@@ -1,5 +1,4 @@
 mod context;
-
 mod envoy_log;
 mod host;
 
@@ -52,8 +51,6 @@ impl ContextFactory for SampleContextFactory {
     }
 }
 // ========================================================
-
-static mut RETRY: bool = true;
 
 lazy_static! {
     static ref SAMPLE_ROOT_CONTEXT_FACTORY: Box<dyn RootContextFactory + Sync> =

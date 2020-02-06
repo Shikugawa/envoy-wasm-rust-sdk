@@ -1,9 +1,9 @@
 use crate::host::*;
 use lazy_static::lazy_static;
-use log::info;
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::ptr::{null, null_mut};
+use std::os::raw::c_char;
+use std::ptr::null_mut;
 use std::sync::{Arc, Mutex};
 
 pub trait RootContext {
@@ -46,25 +46,34 @@ pub fn register_factory(
   CONTEXT_FACTORY_MAP.lock().unwrap().insert(_root_id, &_cf);
 }
 
+fn current_root_id_str() -> String {
+  let path = CString::new("plugin_root_id").unwrap();
+  let root_id: *mut c_char = null_mut::<c_char>();
+  let root_id_size_ptr = Box::into_raw(Box::new(0));
+  unsafe {
+    proxy_get_property(
+      path.as_ptr(),
+      path.as_bytes().len(),
+      &root_id,
+      root_id_size_ptr,
+    );
+    // Is it correct to fill capacity with the length of allocated length of root_id_str?
+    String::from_raw_parts(root_id as *mut u8, *root_id_size_ptr, *root_id_size_ptr)
+  }
+}
+
 pub fn ensure_root_context(root_context_id: u32) -> Arc<Mutex<dyn RootContext + Sync + Send>> {
   let root_context = match ROOT_CONTEXT_MAP.lock().unwrap().get(&root_context_id) {
     Some(x) => Arc::clone(x),
     None => {
-      let path = "plugin_root_id";
-      let root_id: *const u8 = null::<u8>();
-      let root_id_size: *mut usize = null_mut::<usize>();
-      // proxy_get_property(path.as_ptr(), path.len(), &root_id, root_id_size);
-      // let root_id_str: String = CString::from_raw(root_id as *mut i8)
-      //   .into_string()
-      //   .unwrap_or(String::from("my_root_id"));
-      let root_id_str = String::from("my_root_id");
+      let root_id_str = current_root_id_str();
       let root_context = match ROOT_CONTEXT_FACTORY_MAP
         .lock()
         .unwrap()
         .get(&root_id_str.as_ref())
       {
         Some(root_factory) => root_factory.create(),
-        None => panic!("failed"),
+        None => unimplemented!(),
       };
       root_context
     }
@@ -83,7 +92,7 @@ pub fn ensure_context(
   let context = match CONTEXT_MAP.lock().unwrap().get(&context_id) {
     Some(x) => Arc::clone(x),
     None => {
-      let root_id_str = String::from("my_root_id");
+      let root_id_str = current_root_id_str();
       let context = match CONTEXT_FACTORY_MAP
         .lock()
         .unwrap()
@@ -92,7 +101,19 @@ pub fn ensure_context(
         Some(factory) => {
           let context = match ROOT_CONTEXT_MAP.lock().unwrap().get(&root_context_id) {
             Some(root_context) => factory.create(Arc::clone(root_context)),
-            None => unimplemented!(), // Can't find specified root_context_id
+            None => {
+              // Can't find specified root_context_id
+              // Create new ROOT_CONTEXT
+              let root_context = match ROOT_CONTEXT_FACTORY_MAP
+                .lock()
+                .unwrap()
+                .get(&root_id_str.as_ref())
+              {
+                Some(root_factory) => root_factory.create(),
+                None => unimplemented!(),
+              };
+              factory.create(Arc::clone(&root_context))
+            }
           };
           context
         }
