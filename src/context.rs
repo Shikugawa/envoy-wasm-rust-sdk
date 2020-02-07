@@ -1,4 +1,5 @@
 use crate::host::*;
+use crate::types::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -7,10 +8,49 @@ use std::ptr::null_mut;
 use std::sync::{Arc, Mutex};
 
 pub trait RootContext {
-  fn on_start(&self) -> u32;
+  fn on_start(&self, _configuration_size: u32) -> u32 {
+    0
+  }
+  fn on_configure(&self, _configuration_size: u32) -> u32 {
+    0
+  }
+  fn on_tick(&self) -> u32 {
+    0
+  }
 }
+
 pub trait Context {
   fn on_create(&self);
+  fn on_new_connection(&self) -> FilterStatus {
+    FilterStatus::Continue
+  }
+  fn on_downstream_connection(&self, _data_length: usize, _is_stream_end: bool) -> FilterStatus {
+    FilterStatus::Continue
+  }
+  fn on_request_headers(&self, _headers: u32) -> FilterHeadersStatus {
+    FilterHeadersStatus::Continue
+  }
+  fn on_request_metadata(&self, _element: u32) -> FilterMetadataStatus {
+    FilterMetadataStatus::Continue
+  }
+  fn on_request_trailers(&self, _trailers: u32) -> FilterTrailersStatus {
+    FilterTrailersStatus::Continue
+  }
+  fn on_request_body(&self, _body_buffer_length: usize, _is_stream_end: bool) -> FilterDataStatus {
+    FilterDataStatus::Continue
+  }
+  fn on_response_headers(&self, _headers: u32) -> FilterHeadersStatus {
+    FilterHeadersStatus::Continue
+  }
+  fn on_response_metadata(&self, _element: u32) -> FilterMetadataStatus {
+    FilterMetadataStatus::Continue
+  }
+  fn on_response_trailers(&self, _trailers: u32) -> FilterTrailersStatus {
+    FilterTrailersStatus::Continue
+  }
+  fn on_response_body(&self, _body_buffer_length: usize, _is_stream_end: bool) -> FilterDataStatus {
+    FilterDataStatus::Continue
+  }
 }
 
 pub trait RootContextFactory {

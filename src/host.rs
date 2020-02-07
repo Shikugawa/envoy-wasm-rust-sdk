@@ -1,4 +1,5 @@
 use crate::context::*;
+use crate::types::*;
 use log::info;
 use std::os::raw::c_char;
 
@@ -25,9 +26,7 @@ fn free(ptr: *mut u8) {
 
 #[no_mangle]
 pub fn proxy_on_vm_start(_root_context_id: u32, _vm_configuration_size: u32) -> u32 {
-  info!("proxy_on_vm_start: root_context_id = {}", _root_context_id);
-  get_root_context(_root_context_id).on_start();
-  1
+  get_root_context(_root_context_id).on_start(_vm_configuration_size)
 }
 
 #[no_mangle]
@@ -41,6 +40,74 @@ pub fn proxy_on_context_create(_root_context_id: u32, _context_id: u32) {
   } else {
     ensure_root_context(_root_context_id);
   }
+}
+
+#[no_mangle]
+pub fn proxy_on_configure(_root_context_id: u32, _vm_configuration_size: u32) -> u32 {
+  get_root_context(_root_context_id).on_configure(_vm_configuration_size)
+}
+
+#[no_mangle]
+pub fn proxy_on_tick(_root_context_id: u32) -> u32 {
+  get_root_context(_root_context_id).on_tick()
+}
+
+#[no_mangle]
+pub fn proxy_on_new_connection(_context_id: u32) -> u32 {
+  filter_status_to_int(get_context(_context_id).on_new_connection())
+}
+
+#[no_mangle]
+pub fn proxy_on_downstream_data(_context_id: u32, _data_length: u32, _end_stream: u32) -> u32 {
+  filter_status_to_int(
+    get_context(_context_id).on_downstream_connection(_data_length as usize, _end_stream != 0),
+  )
+}
+
+// ====================== HTTP Request Handling API =============================
+#[no_mangle]
+pub fn proxy_on_request_headers(_context_id: u32, headers: u32) -> u32 {
+  filter_header_status_to_int(get_context(_context_id).on_request_headers(headers))
+}
+
+#[no_mangle]
+pub fn proxy_on_request_metadata(_context_id: u32, elements: u32) -> u32 {
+  filter_metadata_status_to_int(get_context(_context_id).on_request_metadata(elements))
+}
+
+#[no_mangle]
+pub fn proxy_on_request_trailers(_context_id: u32, trailers: u32) -> u32 {
+  filter_trailer_status_to_int(get_context(_context_id).on_request_trailers(trailers))
+}
+
+#[no_mangle]
+pub fn proxy_on_request_body(_context_id: u32, _body_buffer_length: u32, _end_stream: u32) -> u32 {
+  filter_data_status_to_int(
+    get_context(_context_id).on_request_body(_body_buffer_length as usize, _end_stream != 0),
+  )
+}
+
+// ====================== HTTP Response Handling API =============================
+#[no_mangle]
+pub fn proxy_on_response_headers(_context_id: u32, headers: u32) -> u32 {
+  filter_header_status_to_int(get_context(_context_id).on_response_headers(headers))
+}
+
+#[no_mangle]
+pub fn proxy_on_response_metadata(_context_id: u32, elements: u32) -> u32 {
+  filter_metadata_status_to_int(get_context(_context_id).on_response_metadata(elements))
+}
+
+#[no_mangle]
+pub fn proxy_on_response_trailers(_context_id: u32, trailers: u32) -> u32 {
+  filter_trailer_status_to_int(get_context(_context_id).on_response_trailers(trailers))
+}
+
+#[no_mangle]
+pub fn proxy_on_response_body(_context_id: u32, _body_buffer_length: u32, _end_stream: u32) -> u32 {
+  filter_data_status_to_int(
+    get_context(_context_id).on_response_body(_body_buffer_length as usize, _end_stream != 0),
+  )
 }
 
 #[no_mangle]

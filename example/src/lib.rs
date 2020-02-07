@@ -10,7 +10,7 @@ use std::sync::Arc;
 struct SampleRootContext {}
 
 impl RootContext for SampleRootContext {
-  fn on_start(&self) -> u32 {
+  fn on_start(&self, _configuration_size: u32) -> u32 {
     info!("Hello Envoy!");
     0
   }
