@@ -32,7 +32,7 @@ static_resources:
                   runtime: "envoy.wasm.runtime.v8"
                   code:
                     local:
-                      filename: "./target/wasm32-unknown-unknown/release/proxy_wasm.wasm"
+                      filename: "./target/wasm32-unknown-unknown/release/example.wasm"
                   allow_precompiled: true
           - name: envoy.router
             config: {}
