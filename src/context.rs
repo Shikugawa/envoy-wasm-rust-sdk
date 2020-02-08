@@ -1,6 +1,7 @@
 use crate::host::*;
 use crate::types::*;
 use lazy_static::lazy_static;
+use log::info;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -14,9 +15,7 @@ pub trait RootContext {
   fn on_configure(&self, _configuration_size: u32) -> u32 {
     0
   }
-  fn on_tick(&self) -> u32 {
-    0
-  }
+  fn on_tick(&self) {}
 }
 
 pub trait Context {
@@ -70,7 +69,7 @@ lazy_static! {
     Mutex::new(HashMap::new());
   static ref ROOT_CONTEXT_MAP: Mutex<HashMap<u32, Arc<dyn RootContext + Sync + Send>>> =
     Mutex::new(HashMap::new());
-  static ref CONTEXT_MAP: Mutex<HashMap<u32, Arc<dyn Context + Sync + Send>>> =
+  pub static ref CONTEXT_MAP: Mutex<HashMap<u32, Arc<dyn Context + Sync + Send>>> =
     Mutex::new(HashMap::new());
 }
 
@@ -118,50 +117,43 @@ pub fn ensure_root_context(root_context_id: u32) -> Arc<dyn RootContext + Sync +
       root_context
     }
   };
-  let mut locked_map = ROOT_CONTEXT_MAP.lock().unwrap();
-  if !locked_map.contains_key(&root_context_id) {
-    locked_map.insert(root_context_id, Arc::clone(&root_context));
+  let mut locked_root_context_map = ROOT_CONTEXT_MAP.lock().unwrap();
+  if !locked_root_context_map.contains_key(&root_context_id) {
+    locked_root_context_map.insert(root_context_id, Arc::clone(&root_context));
   }
   root_context
 }
 
 pub fn ensure_context(context_id: u32, root_context_id: u32) -> Arc<dyn Context + Sync + Send> {
-  match CONTEXT_MAP.lock().unwrap().get(&context_id) {
+  let root_id_str = current_root_id_str();
+  let context = match CONTEXT_MAP.lock().unwrap().get(&context_id) {
     Some(x) => Arc::clone(x),
     None => {
-      let root_id_str = current_root_id_str();
+      let root_context = match ROOT_CONTEXT_MAP.lock().unwrap().get(&root_context_id) {
+        Some(root_context) => Arc::clone(root_context),
+        None => unimplemented!(),
+      };
       let context = match CONTEXT_FACTORY_MAP
         .lock()
         .unwrap()
         .get(&root_id_str.as_ref())
       {
-        Some(factory) => {
-          let context = match ROOT_CONTEXT_MAP.lock().unwrap().get(&root_context_id) {
-            Some(root_context) => factory.create(Arc::clone(root_context)),
-            None => {
-              // Can't find specified root_context_id
-              // Create new ROOT_CONTEXT
-              let root_context = match ROOT_CONTEXT_FACTORY_MAP
-                .lock()
-                .unwrap()
-                .get(&root_id_str.as_ref())
-              {
-                Some(root_factory) => root_factory.create(),
-                None => unimplemented!(),
-              };
-              factory.create(root_context)
-            }
-          };
-          context
-        }
-        None => unimplemented!(), // can't find speficied context_id
+        Some(factory) => factory.create(root_context),
+        None => unimplemented!(),
       };
       context
     }
+  };
+  let mut locked_context_map = CONTEXT_MAP.lock().unwrap();
+  if !locked_context_map.contains_key(&context_id) {
+    locked_context_map.insert(context_id, Arc::clone(&context));
   }
+  context
 }
 
 pub fn get_context(context_id: u32) -> Arc<dyn Context + Sync + Send> {
+  info!("get context {}", CONTEXT_MAP.lock().unwrap().len());
+  info!("requested context {}", context_id);
   match CONTEXT_MAP.lock().unwrap().get(&context_id) {
     Some(x) => Arc::clone(x),
     None => unimplemented!(),

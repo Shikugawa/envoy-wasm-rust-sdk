@@ -30,25 +30,25 @@ pub fn proxy_on_vm_start(_root_context_id: u32, _vm_configuration_size: u32) -> 
 }
 
 #[no_mangle]
-pub fn proxy_on_context_create(_root_context_id: u32, _context_id: u32) {
+pub fn proxy_on_context_create(_context_id: u32, _parent_context_id: u32) {
   info!(
-    "proxy_on_context_create: root_context_id = {} _context_id = {}",
-    _root_context_id, _context_id
+    "proxy_on_context_create: context_id = {} paret_context_id = {}",
+    _context_id, _parent_context_id
   );
-  if _context_id != 0 {
-    ensure_context(_context_id, _root_context_id).on_create();
+  if _parent_context_id != 0 {
+    ensure_context(_context_id, _parent_context_id).on_create();
   } else {
-    ensure_root_context(_root_context_id);
+    ensure_root_context(_context_id);
   }
 }
 
-#[no_mangle]
-pub fn proxy_on_configure(_root_context_id: u32, _vm_configuration_size: u32) -> u32 {
-  get_root_context(_root_context_id).on_configure(_vm_configuration_size)
-}
+// #[no_mangle]
+// pub fn proxy_on_configure(_root_context_id: u32, _vm_configuration_size: u32) -> u32 {
+//   get_root_context(_root_context_id).on_configure(_vm_configuration_size)
+// }
 
 #[no_mangle]
-pub fn proxy_on_tick(_root_context_id: u32) -> u32 {
+pub fn proxy_on_tick(_root_context_id: u32) {
   get_root_context(_root_context_id).on_tick()
 }
 
@@ -112,8 +112,7 @@ pub fn proxy_on_response_body(_context_id: u32, _body_buffer_length: u32, _end_s
 
 #[no_mangle]
 pub fn proxy_on_done(_context_id: u32) -> u32 {
-  info!("done {}", _context_id);
-  1
+  0
 }
 
 /// Low-level Proxy-WASM APIs for the host functions.
