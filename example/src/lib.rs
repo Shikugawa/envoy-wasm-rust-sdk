@@ -4,6 +4,7 @@ use lazy_static::*;
 use log::info;
 use proxy_wasm::context::*;
 use proxy_wasm::envoy_log::*;
+use proxy_wasm::payload::*;
 use proxy_wasm::types::*;
 use std::sync::Arc;
 
@@ -36,10 +37,14 @@ impl Context for SampleContext {
     info!("Hello Envoy Create!");
   }
 
-  // fn on_request_headers(&self, _headers: u32) -> FilterHeadersStatus {
-  //   info!("received request headers");
-  //   FilterHeadersStatus::Continue
-  // }
+  fn on_request_headers(&self, _headers: u32) -> FilterHeadersStatus {
+    info!("received request headers");
+    let header = getRequestHeaderPairs();
+    let authority = getRequestHeader(String::from(":authority"));
+    info!("{}", header.to_string());
+    info!("{}", authority.to_string());
+    FilterHeadersStatus::Continue
+  }
 }
 
 struct SampleContextFactory {}

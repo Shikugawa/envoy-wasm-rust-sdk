@@ -56,33 +56,13 @@ pub enum FilterStatus {
   StopIteration,
 }
 
-pub fn filter_status_to_int(status: FilterStatus) -> u32 {
-  match status {
-    FilterStatus::Continue => 0,
-    FilterStatus::StopIteration => 1,
-  }
-}
-
 pub enum FilterHeadersStatus {
   Continue,
   StopIteration,
 }
 
-pub fn filter_header_status_to_int(status: FilterHeadersStatus) -> u32 {
-  match status {
-    FilterHeadersStatus::Continue => 0,
-    FilterHeadersStatus::StopIteration => 1,
-  }
-}
-
 pub enum FilterMetadataStatus {
   Continue,
-}
-
-pub fn filter_metadata_status_to_int(status: FilterMetadataStatus) -> u32 {
-  match status {
-    FilterMetadataStatus::Continue => 0,
-  }
 }
 
 pub enum FilterTrailersStatus {
@@ -90,27 +70,11 @@ pub enum FilterTrailersStatus {
   StopIteration,
 }
 
-pub fn filter_trailer_status_to_int(status: FilterTrailersStatus) -> u32 {
-  match status {
-    FilterTrailersStatus::Continue => 0,
-    FilterTrailersStatus::StopIteration => 1,
-  }
-}
-
 pub enum FilterDataStatus {
   Continue,
   StopIterationAndBuffer,
   StopIterationAndWatermark,
   StopIterationNoBuffer,
-}
-
-pub fn filter_data_status_to_int(status: FilterDataStatus) -> u32 {
-  match status {
-    FilterDataStatus::Continue => 0,
-    FilterDataStatus::StopIterationAndBuffer => 1,
-    FilterDataStatus::StopIterationAndWatermark => 2,
-    FilterDataStatus::StopIterationNoBuffer => 3,
-  }
 }
 
 pub enum GrpcStatus {
@@ -145,4 +109,55 @@ pub enum PeerType {
   Unknown,
   Local,
   Remote,
+}
+
+pub fn filter_trailer_status_to_int(status: FilterTrailersStatus) -> u32 {
+  match status {
+    FilterTrailersStatus::Continue => 0,
+    FilterTrailersStatus::StopIteration => 1,
+  }
+}
+
+pub fn filter_header_status_to_int(status: FilterHeadersStatus) -> u32 {
+  match status {
+    FilterHeadersStatus::Continue => 0,
+    FilterHeadersStatus::StopIteration => 1,
+  }
+}
+
+pub fn filter_data_status_to_int(status: FilterDataStatus) -> u32 {
+  match status {
+    FilterDataStatus::Continue => 0,
+    FilterDataStatus::StopIterationAndBuffer => 1,
+    FilterDataStatus::StopIterationAndWatermark => 2,
+    FilterDataStatus::StopIterationNoBuffer => 3,
+  }
+}
+
+pub fn filter_metadata_status_to_int(status: FilterMetadataStatus) -> u32 {
+  match status {
+    FilterMetadataStatus::Continue => 0,
+  }
+}
+
+pub fn filter_status_to_int(status: FilterStatus) -> u32 {
+  match status {
+    FilterStatus::Continue => 0,
+    FilterStatus::StopIteration => 1,
+  }
+}
+
+pub fn header_map_type_to_int(htype: HeaderMapType) -> u32 {
+  match htype {
+    HeaderMapType::RequestHeaders => 0,
+    HeaderMapType::RequestTrailers => 1,
+    HeaderMapType::ResponseHeaders => 2,
+    HeaderMapType::ResponseTrailers => 3,
+    HeaderMapType::GrpcCreateInitialMetadata => 4,
+    HeaderMapType::GrpcReceiveInitialMetadata => 5,
+    HeaderMapType::GrpcReceiveTrailingMetadata => 6,
+    HeaderMapType::HttpCallResponseHeaders => 7,
+    HeaderMapType::HttpCallResponseTrailers => 8,
+    HeaderMapType::MAX => 9,
+  }
 }

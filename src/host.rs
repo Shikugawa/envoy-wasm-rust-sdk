@@ -124,4 +124,16 @@ extern "C" {
     _value_ptr_ptr: *const *mut c_char,
     _value_size_ptr: *mut usize,
   ) -> u32;
+  pub fn proxy_get_header_map_pairs(
+    _type: u32, // Low-level Proxy-WASM can't be support defined types on SDK
+    _ptr: *const *mut c_char,
+    _size_ptr: *mut usize,
+  ) -> u32;
+  pub fn proxy_get_header_map_value(
+    _type: u32, // Low-level Proxy-WASM can't be support defined types on SDK
+    _key_ptr: *const c_char,
+    _key_size_ptr: usize,
+    _value_ptr: *const *mut c_char,
+    _value_size_ptr: *mut usize,
+  ) -> u32;
 }
