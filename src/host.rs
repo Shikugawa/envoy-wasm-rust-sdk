@@ -124,16 +124,40 @@ extern "C" {
     _value_ptr_ptr: *const *mut c_char,
     _value_size_ptr: *mut usize,
   ) -> u32;
+
+  // ====================== Low-Level Proxy Header/Header/Metadata API ===========================
   pub fn proxy_get_header_map_pairs(
-    _type: u32, // Low-level Proxy-WASM can't be support defined types on SDK
+    _type: u32,
     _ptr: *const *mut c_char,
     _size_ptr: *mut usize,
   ) -> u32;
+  pub fn proxy_set_header_map_pairs(_type: u32, _ptr: *const c_char, _size: usize) -> u32;
   pub fn proxy_get_header_map_value(
-    _type: u32, // Low-level Proxy-WASM can't be support defined types on SDK
+    _type: u32,
     _key_ptr: *const c_char,
     _key_size_ptr: usize,
     _value_ptr: *const *mut c_char,
     _value_size_ptr: *mut usize,
   ) -> u32;
+  pub fn proxy_add_header_map_value(
+    _type: u32,
+    _key_ptr: *const c_char,
+    _key_size: usize,
+    _value_ptr: *const c_char,
+    _value_size: usize,
+  ) -> u32;
+  pub fn proxy_replace_header_map_value(
+    _type: u32,
+    _key_ptr: *const c_char,
+    _key_size: usize,
+    _value_ptr: *const c_char,
+    _value_size: usize,
+  ) -> u32;
+  pub fn proxy_remove_header_map_value(
+    _type: u32,
+    _key_ptr: *const c_char,
+    _key_size: usize,
+  ) -> u32;
+  pub fn proxy_get_header_map_size(_type: u32, _value_size_ptr: *mut usize) -> u32;
+// ====================== Low-Level Proxy Header/Header/Metadata API ===========================
 }

@@ -22,6 +22,7 @@ pub enum WasmResult {
   InternalFailure,
   // The connection/stream/pipe was broken/closed unexpectedly.
   BrokenConnection,
+  MAX,
 }
 
 pub enum HeaderMapType {
@@ -159,5 +160,41 @@ pub fn header_map_type_to_int(htype: HeaderMapType) -> u32 {
     HeaderMapType::HttpCallResponseHeaders => 7,
     HeaderMapType::HttpCallResponseTrailers => 8,
     HeaderMapType::MAX => 9,
+  }
+}
+
+pub fn to_wasm_result(result: u32) -> WasmResult {
+  match result {
+    0 => WasmResult::Ok,
+    1 => WasmResult::NotFound,
+    2 => WasmResult::BadArgument,
+    3 => WasmResult::SerializationFailure,
+    4 => WasmResult::ParseFailure,
+    5 => WasmResult::BadExpression,
+    6 => WasmResult::InvalidMemoryAccess,
+    7 => WasmResult::Empty,
+    8 => WasmResult::CasMismatch,
+    9 => WasmResult::ResultMismatch,
+    10 => WasmResult::InternalFailure,
+    11 => WasmResult::BrokenConnection,
+    _ => WasmResult::MAX,
+  }
+}
+
+pub fn wasm_result_to_str(result: WasmResult) -> &'static str {
+  match result {
+    WasmResult::Ok => "OK",
+    WasmResult::NotFound => "NotFound",
+    WasmResult::BadArgument => "BadArgument",
+    WasmResult::SerializationFailure => "SerializationFailure",
+    WasmResult::ParseFailure => "ParseFailure",
+    WasmResult::BadExpression => "BadExpression",
+    WasmResult::InvalidMemoryAccess => "InvalidMemoryAccess",
+    WasmResult::Empty => "Empty",
+    WasmResult::CasMismatch => "CasMismatch",
+    WasmResult::ResultMismatch => "ResultMismatch",
+    WasmResult::InternalFailure => "internalFailure",
+    WasmResult::BrokenConnection => "BrokenConnection",
+    WasmResult::MAX => "unimplemented",
   }
 }
