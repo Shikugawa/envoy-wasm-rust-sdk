@@ -41,8 +41,17 @@ impl Context for SampleContext {
     info!("received request headers");
     let header = get_request_header_pairs();
     let authority = get_request_header(String::from(":authority"));
-    info!("{}", header.to_string());
-    info!("{}", authority.to_string());
+    let path = get_request_header(String::from(":path"));
+    info!("prev path: {}", path.to_string());
+    replace_request_header(":path".to_string(), "/blue".to_string());
+    let path = get_request_header(String::from(":path"));
+    info!("current path: {}", path.to_string());
+    remove_request_header(String::from(":path"));
+    add_request_header(String::from(":path"), "/green".to_string());
+    let path = get_request_header(String::from(":path"));
+    info!("next path: {}", path.to_string());
+    let size = get_request_trailer_size();
+    info!("size: {}", size);
     FilterHeadersStatus::Continue
   }
 }

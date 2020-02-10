@@ -1,6 +1,5 @@
 use crate::context::*;
 use crate::types::*;
-use log::info;
 use std::os::raw::c_char;
 
 /// Allow host to allocate memory.
@@ -31,10 +30,6 @@ pub fn proxy_on_vm_start(_root_context_id: u32, _vm_configuration_size: u32) -> 
 
 #[no_mangle]
 pub fn proxy_on_context_create(_context_id: u32, _parent_context_id: u32) {
-  info!(
-    "proxy_on_context_create: context_id = {} paret_context_id = {}",
-    _context_id, _parent_context_id
-  );
   if _parent_context_id != 0 {
     ensure_context(_context_id, _parent_context_id).on_create();
   } else {

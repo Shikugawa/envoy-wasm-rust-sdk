@@ -1,7 +1,6 @@
 use crate::host::*;
 use crate::types::*;
 use lazy_static::lazy_static;
-use log::info;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -152,8 +151,6 @@ pub fn ensure_context(context_id: u32, root_context_id: u32) -> Arc<dyn Context 
 }
 
 pub fn get_context(context_id: u32) -> Arc<dyn Context + Sync + Send> {
-  info!("get context {}", CONTEXT_MAP.lock().unwrap().len());
-  info!("requested context {}", context_id);
   match CONTEXT_MAP.lock().unwrap().get(&context_id) {
     Some(x) => Arc::clone(x),
     None => unimplemented!(),
