@@ -39,8 +39,8 @@ impl Context for SampleContext {
 
   fn on_request_headers(&self, _headers: u32) -> FilterHeadersStatus {
     info!("received request headers");
-    let header = getRequestHeaderPairs();
-    let authority = getRequestHeader(String::from(":authority"));
+    let header = get_request_header_pairs();
+    let authority = get_request_header(String::from(":authority"));
     info!("{}", header.to_string());
     info!("{}", authority.to_string());
     FilterHeadersStatus::Continue

@@ -2,6 +2,7 @@ use crate::host::*;
 use crate::types::*;
 use log::error;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 
@@ -22,23 +23,26 @@ impl WasmData {
 // e.g \n\n\n$:authoritylocalhost:8000:path/:methodGET...
 // So we should destroy top change-line symbols and insert them to different headers.
 // e.g :authority: localhost:8000\n:path: /\n:method: GET\n...
-pub fn getHeaderMapPairs(htype: HeaderMapType) -> Result<Box<WasmData>, &'static str> {
+pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<Box<WasmData>, String> {
   let type_num = header_map_type_to_int(htype);
   let data_ptr: *mut c_char = null_mut::<c_char>();
   let size_ptr = Box::into_raw(Box::new(0));
   unsafe {
     let code = proxy_get_header_map_pairs(type_num, &data_ptr, size_ptr);
-    match to_wasm_result(code) {
-      WasmResult::Ok => Ok(Box::new(WasmData {
-        data: data_ptr,
-        len: *size_ptr,
-      })),
-      _ => Err(wasm_result_to_str(to_wasm_result(code))),
+    match WasmResult::try_from(code) {
+      Ok(r) => match r {
+        WasmResult::Ok => Ok(Box::new(WasmData {
+          data: data_ptr,
+          len: *size_ptr,
+        })),
+        _ => Err(r.to_string()),
+      },
+      Err(e) => Err(e),
     }
   }
 }
 
-pub fn getHeaderMapValue(htype: HeaderMapType, key: String) -> Result<Box<WasmData>, &'static str> {
+pub fn get_header_map_value(htype: HeaderMapType, key: String) -> Result<Box<WasmData>, String> {
   let type_num = header_map_type_to_int(htype);
   let data_ptr: *mut c_char = null_mut::<c_char>();
   let size_ptr = Box::into_raw(Box::new(0));
@@ -50,17 +54,20 @@ pub fn getHeaderMapValue(htype: HeaderMapType, key: String) -> Result<Box<WasmDa
       &data_ptr,
       size_ptr,
     );
-    match to_wasm_result(code) {
-      WasmResult::Ok => Ok(Box::new(WasmData {
-        data: data_ptr,
-        len: *size_ptr,
-      })),
-      _ => Err(wasm_result_to_str(to_wasm_result(code))),
+    match WasmResult::try_from(code) {
+      Ok(r) => match r {
+        WasmResult::Ok => Ok(Box::new(WasmData {
+          data: data_ptr,
+          len: *size_ptr,
+        })),
+        _ => Err(r.to_string()),
+      },
+      Err(e) => Err(e),
     }
   }
 }
 
-pub fn addHeaderMapValue(htype: HeaderMapType, key: String, value: String) -> WasmResult {
+pub fn add_header_map_value(htype: HeaderMapType, key: String, value: String) -> WasmResult {
   let type_num = header_map_type_to_int(htype);
   unsafe {
     let code = proxy_add_header_map_value(
@@ -70,11 +77,14 @@ pub fn addHeaderMapValue(htype: HeaderMapType, key: String, value: String) -> Wa
       value.as_ptr() as *const c_char,
       value.as_bytes().len(),
     );
-    to_wasm_result(code)
+    match WasmResult::try_from(code) {
+      Ok(r) => r,
+      Err(e) => panic!(format!("failed to convert: {}", e)),
+    }
   }
 }
 
-pub fn replaceHeaderMapValue(htype: HeaderMapType, key: String, value: String) -> WasmResult {
+pub fn replace_header_map_value(htype: HeaderMapType, key: String, value: String) -> WasmResult {
   let type_num = header_map_type_to_int(htype);
   unsafe {
     let code = proxy_replace_header_map_value(
@@ -84,11 +94,14 @@ pub fn replaceHeaderMapValue(htype: HeaderMapType, key: String, value: String) -
       value.as_ptr() as *const c_char,
       value.as_bytes().len(),
     );
-    to_wasm_result(code)
+    match WasmResult::try_from(code) {
+      Ok(r) => r,
+      Err(e) => panic!(format!("failed to convert: {}", e)),
+    }
   }
 }
 
-pub fn removeHeaderMapValue(htype: HeaderMapType, key: String) -> WasmResult {
+pub fn remove_header_map_value(htype: HeaderMapType, key: String) -> WasmResult {
   let type_num = header_map_type_to_int(htype);
   unsafe {
     let code = proxy_remove_header_map_value(
@@ -96,11 +109,14 @@ pub fn removeHeaderMapValue(htype: HeaderMapType, key: String) -> WasmResult {
       key.as_ptr() as *const c_char,
       key.as_bytes().len(),
     );
-    to_wasm_result(code)
+    match WasmResult::try_from(code) {
+      Ok(r) => r,
+      Err(e) => panic!(format!("failed to convert: {}", e)),
+    }
   }
 }
 
-pub fn getHeaderMapValueSize(htype: HeaderMapType) -> u32 {
+pub fn get_header_map_value_size(htype: HeaderMapType) -> u32 {
   let type_num = header_map_type_to_int(htype);
   let size_ptr = Box::into_raw(Box::new(0));
   unsafe { proxy_get_header_map_size(type_num, size_ptr) }
@@ -109,13 +125,13 @@ pub fn getHeaderMapValueSize(htype: HeaderMapType) -> u32 {
 // ======================= Low-Level Proxy API Wrapper =============================
 
 // ====================== Request Header Processing API ===========================
-pub fn setRequestHeaderPairs(pairs: &HashMap<String, String>) -> Box<WasmData> {
+pub fn set_request_header_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
   unimplemented!()
   // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
 }
 
-pub fn getRequestHeaderPairs() -> Box<WasmData> {
-  match getHeaderMapPairs(HeaderMapType::RequestHeaders) {
+pub fn get_request_header_pairs() -> Box<WasmData> {
+  match get_header_map_pairs(HeaderMapType::RequestHeaders) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -124,8 +140,8 @@ pub fn getRequestHeaderPairs() -> Box<WasmData> {
   }
 }
 
-pub fn getRequestHeader(key: String) -> Box<WasmData> {
-  match getHeaderMapValue(HeaderMapType::RequestHeaders, key) {
+pub fn get_request_header(key: String) -> Box<WasmData> {
+  match get_header_map_value(HeaderMapType::RequestHeaders, key) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -134,31 +150,31 @@ pub fn getRequestHeader(key: String) -> Box<WasmData> {
   }
 }
 
-pub fn addRequestHeader(key: String, value: String) -> WasmResult {
-  addHeaderMapValue(HeaderMapType::RequestHeaders, key, value)
+pub fn add_request_header(key: String, value: String) -> WasmResult {
+  add_header_map_value(HeaderMapType::RequestHeaders, key, value)
 }
 
-pub fn replaceRequestHeader(key: String, value: String) -> WasmResult {
-  replaceHeaderMapValue(HeaderMapType::RequestHeaders, key, value)
+pub fn replace_request_header(key: String, value: String) -> WasmResult {
+  replace_header_map_value(HeaderMapType::RequestHeaders, key, value)
 }
 
-pub fn removeRequestHeader(key: String) -> WasmResult {
-  removeHeaderMapValue(HeaderMapType::RequestHeaders, key)
+pub fn remove_request_header(key: String) -> WasmResult {
+  remove_header_map_value(HeaderMapType::RequestHeaders, key)
 }
 
-pub fn getRequestHeaderSize() -> u32 {
-  getHeaderMapValueSize(HeaderMapType::RequestHeaders)
+pub fn get_request_header_size() -> u32 {
+  get_header_map_value_size(HeaderMapType::RequestHeaders)
 }
 // ====================== Request Header Processing API ===========================
 
 // ====================== Response Header Processing API ===========================
-pub fn setResponseHeaderPairs(pairs: &HashMap<String, String>) -> Box<WasmData> {
+pub fn set_response_header_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
   unimplemented!()
   // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
 }
 
-pub fn getResponseHeaderPairs() -> Box<WasmData> {
-  match getHeaderMapPairs(HeaderMapType::ResponseHeaders) {
+pub fn get_response_header_pairs() -> Box<WasmData> {
+  match get_header_map_pairs(HeaderMapType::ResponseHeaders) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -167,8 +183,8 @@ pub fn getResponseHeaderPairs() -> Box<WasmData> {
   }
 }
 
-pub fn getResponseHeader(key: String) -> Box<WasmData> {
-  match getHeaderMapValue(HeaderMapType::ResponseHeaders, key) {
+pub fn get_response_header(key: String) -> Box<WasmData> {
+  match get_header_map_value(HeaderMapType::ResponseHeaders, key) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -177,31 +193,31 @@ pub fn getResponseHeader(key: String) -> Box<WasmData> {
   }
 }
 
-pub fn addResponseHeader(key: String, value: String) -> WasmResult {
-  addHeaderMapValue(HeaderMapType::ResponseHeaders, key, value)
+pub fn add_response_header(key: String, value: String) -> WasmResult {
+  add_header_map_value(HeaderMapType::ResponseHeaders, key, value)
 }
 
-pub fn replaceResponseHeader(key: String, value: String) -> WasmResult {
-  replaceHeaderMapValue(HeaderMapType::ResponseHeaders, key, value)
+pub fn replace_response_header(key: String, value: String) -> WasmResult {
+  replace_header_map_value(HeaderMapType::ResponseHeaders, key, value)
 }
 
-pub fn removeResponseHeader(key: String) -> WasmResult {
-  removeHeaderMapValue(HeaderMapType::ResponseHeaders, key)
+pub fn remove_response_header(key: String) -> WasmResult {
+  remove_header_map_value(HeaderMapType::ResponseHeaders, key)
 }
 
-pub fn getResponseHeaderSize() -> u32 {
-  getHeaderMapValueSize(HeaderMapType::ResponseHeaders)
+pub fn get_response_header_size() -> u32 {
+  get_header_map_value_size(HeaderMapType::ResponseHeaders)
 }
 // ====================== Response Header Processing API ===========================
 
 // ====================== Request Trailer Processing API ===========================
-pub fn setRequestTrailerPairs(pairs: &HashMap<String, String>) -> Box<WasmData> {
+pub fn set_request_trailer_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
   unimplemented!()
   // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
 }
 
-pub fn getRequestTrailerPairs() -> Box<WasmData> {
-  match getHeaderMapPairs(HeaderMapType::RequestTrailers) {
+pub fn get_request_trailer_pairs() -> Box<WasmData> {
+  match get_header_map_pairs(HeaderMapType::RequestTrailers) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -210,8 +226,8 @@ pub fn getRequestTrailerPairs() -> Box<WasmData> {
   }
 }
 
-pub fn getRequestTrailer(key: String) -> Box<WasmData> {
-  match getHeaderMapValue(HeaderMapType::RequestTrailers, key) {
+pub fn get_request_trailer(key: String) -> Box<WasmData> {
+  match get_header_map_value(HeaderMapType::RequestTrailers, key) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -220,31 +236,31 @@ pub fn getRequestTrailer(key: String) -> Box<WasmData> {
   }
 }
 
-pub fn addRequestTrailer(key: String, value: String) -> WasmResult {
-  addHeaderMapValue(HeaderMapType::RequestTrailers, key, value)
+pub fn add_request_trailer(key: String, value: String) -> WasmResult {
+  add_header_map_value(HeaderMapType::RequestTrailers, key, value)
 }
 
-pub fn replaceRequestTrailer(key: String, value: String) -> WasmResult {
-  replaceHeaderMapValue(HeaderMapType::RequestTrailers, key, value)
+pub fn replace_request_trailer(key: String, value: String) -> WasmResult {
+  replace_header_map_value(HeaderMapType::RequestTrailers, key, value)
 }
 
-pub fn removeRequestTrailer(key: String) -> WasmResult {
-  removeHeaderMapValue(HeaderMapType::RequestTrailers, key)
+pub fn remove_request_trailer(key: String) -> WasmResult {
+  remove_header_map_value(HeaderMapType::RequestTrailers, key)
 }
 
-pub fn getRequestTrailerSize() -> u32 {
-  getHeaderMapValueSize(HeaderMapType::RequestTrailers)
+pub fn get_request_trailer_size() -> u32 {
+  get_header_map_value_size(HeaderMapType::RequestTrailers)
 }
 // ====================== Request Trailer Processing API ===========================
 
 // ====================== Response Trailer Processing API ===========================
-pub fn setResponseTrailerPairs(pairs: &HashMap<String, String>) -> Box<WasmData> {
+pub fn set_response_trailer_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
   unimplemented!()
   // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
 }
 
-pub fn getResponseTrailerPairs() -> Box<WasmData> {
-  match getHeaderMapPairs(HeaderMapType::ResponseTrailers) {
+pub fn get_response_trailer_pairs() -> Box<WasmData> {
+  match get_header_map_pairs(HeaderMapType::ResponseTrailers) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -253,8 +269,8 @@ pub fn getResponseTrailerPairs() -> Box<WasmData> {
   }
 }
 
-pub fn getResponseTrailer(key: String) -> Box<WasmData> {
-  match getHeaderMapValue(HeaderMapType::ResponseTrailers, key) {
+pub fn get_response_trailer(key: String) -> Box<WasmData> {
+  match get_header_map_value(HeaderMapType::ResponseTrailers, key) {
     Ok(t) => t,
     Err(e) => {
       error!("{}", e);
@@ -263,19 +279,19 @@ pub fn getResponseTrailer(key: String) -> Box<WasmData> {
   }
 }
 
-pub fn addResponseTrailer(key: String, value: String) -> WasmResult {
-  addHeaderMapValue(HeaderMapType::ResponseTrailers, key, value)
+pub fn add_response_trailer(key: String, value: String) -> WasmResult {
+  add_header_map_value(HeaderMapType::ResponseTrailers, key, value)
 }
 
-pub fn replaceResponseTrailer(key: String, value: String) -> WasmResult {
-  replaceHeaderMapValue(HeaderMapType::ResponseTrailers, key, value)
+pub fn replace_response_trailer(key: String, value: String) -> WasmResult {
+  replace_header_map_value(HeaderMapType::ResponseTrailers, key, value)
 }
 
-pub fn removeResponseTrailer(key: String) -> WasmResult {
-  removeHeaderMapValue(HeaderMapType::ResponseTrailers, key)
+pub fn remove_response_trailer(key: String) -> WasmResult {
+  remove_header_map_value(HeaderMapType::ResponseTrailers, key)
 }
 
-pub fn getResponseTrailerSize() -> u32 {
-  getHeaderMapValueSize(HeaderMapType::ResponseTrailers)
+pub fn get_response_trailer_size() -> u32 {
+  get_header_map_value_size(HeaderMapType::ResponseTrailers)
 }
 // ====================== Response Trailer Processing API ===========================
