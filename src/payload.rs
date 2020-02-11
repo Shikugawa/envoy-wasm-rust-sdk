@@ -4,7 +4,7 @@ use log::error;
 use std::collections::HashMap;
 
 // ====================== Request Header Processing API ===========================
-pub fn get_request_header_pairs() -> Box<WasmData> {
+pub fn get_request_header_pairs() -> HashMap<String, String> {
   match get_header_map_pairs(HeaderMapType::RequestHeaders) {
     Ok(t) => t,
     Err(e) => {
@@ -52,7 +52,7 @@ pub fn set_response_header_pairs(_pairs: &HashMap<String, String>) -> WasmResult
   set_header_map_pairs(HeaderMapType::ResponseHeaders, _pairs)
 }
 
-pub fn get_response_header_pairs() -> Box<WasmData> {
+pub fn get_response_header_pairs() -> HashMap<String, String> {
   match get_header_map_pairs(HeaderMapType::ResponseHeaders) {
     Ok(t) => t,
     Err(e) => {
@@ -95,7 +95,7 @@ pub fn set_request_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResult
   set_header_map_pairs(HeaderMapType::RequestTrailers, _pairs)
 }
 
-pub fn get_request_trailer_pairs() -> Box<WasmData> {
+pub fn get_request_trailer_pairs() -> HashMap<String, String> {
   match get_header_map_pairs(HeaderMapType::RequestTrailers) {
     Ok(t) => t,
     Err(e) => {
@@ -138,7 +138,7 @@ pub fn set_response_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResul
   set_header_map_pairs(HeaderMapType::ResponseTrailers, _pairs)
 }
 
-pub fn get_response_trailer_pairs() -> Box<WasmData> {
+pub fn get_response_trailer_pairs() -> HashMap<String, String> {
   match get_header_map_pairs(HeaderMapType::ResponseTrailers) {
     Ok(t) => t,
     Err(e) => {

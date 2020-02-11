@@ -3,6 +3,7 @@ use crate::types::*;
 use log::{info, warn};
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::mem::transmute;
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 
@@ -17,39 +18,121 @@ impl WasmData {
   }
 }
 
-pub fn hashmap_into_buffer(_pairs: &HashMap<String, String>) -> (*mut c_char, usize) {
-  let mut buffer_size = 0;
-  let mut tmp_buffer = Vec::<u8>::with_capacity(0);
-  for (key, value) in _pairs {
-    let key_size = key.as_bytes().len();
-    buffer_size += &key_size;
-    tmp_buffer.reserve(buffer_size);
-    unsafe {
-      tmp_buffer.append(&mut Vec::from_raw_parts(
-        key.as_ptr() as *mut u8,
-        key_size,
-        key_size,
-      ));
+pub fn buffer_size(_pairs: &HashMap<String, String>) -> usize {
+  let mut size = 4;
+  size += 8 * _pairs.len(); // It is required to add the length of key and value.
+  for (k, v) in _pairs {
+    size += k.len();
+    size += 1; // Null-termination symbol
+    size += v.len();
+    size += 1; // Null-termination symbol
+  }
+  size
+}
+
+pub fn buffer_into_hashmap(_buffer_ptr: *mut c_char, _size: usize) -> HashMap<String, String> {
+  let mut result = HashMap::new();
+  unsafe {
+    let buffer = Vec::from_raw_parts(_buffer_ptr, _size, _size);
+    // read 4 bytes to get hashmap size illustrated as usize
+    let pairs_size = transmute::<[u8; 4], u32>([
+      buffer[0] as u8,
+      buffer[1] as u8,
+      buffer[2] as u8,
+      buffer[3] as u8,
+    ]);
+    result.reserve(pairs_size as usize);
+    info!("{}", pairs_size);
+    let mut tmp_tuples = Vec::<(String, String)>::new();
+    let mut key_size = 0;
+    for i in 0..(2 * pairs_size) {
+      if i % 2 == 0 {
+        // read 4 bytes to get key size illustrated as usize
+        key_size = transmute::<[u8; 4], u32>([
+          buffer[4 + 4 * i as usize] as u8,
+          buffer[5 + 4 * i as usize] as u8,
+          buffer[6 + 4 * i as usize] as u8,
+          buffer[7 + 4 * i as usize] as u8,
+        ]);
+      } else {
+        // read 4 bytes to get value size illustrated as usize
+        let value_size = transmute::<[u8; 4], u32>([
+          buffer[4 + 4 * i as usize] as u8,
+          buffer[5 + 4 * i as usize] as u8,
+          buffer[6 + 4 * i as usize] as u8,
+          buffer[7 + 4 * i as usize] as u8,
+        ]);
+        if key_size != 0 && value_size != 0 {
+          let data_ptr: *mut c_char = null_mut::<c_char>();
+          tmp_tuples.push((
+            String::from_raw_parts(data_ptr as *mut u8, key_size as usize, key_size as usize),
+            String::from_raw_parts(
+              data_ptr as *mut u8,
+              value_size as usize,
+              value_size as usize,
+            ),
+          ));
+          key_size = 0;
+        }
+      }
     }
-    let value_size = value.as_bytes().len();
-    buffer_size += &value_size;
-    tmp_buffer.reserve(buffer_size);
-    unsafe {
-      tmp_buffer.append(&mut Vec::from_raw_parts(
-        value.as_ptr() as *mut u8,
-        value_size,
-        value_size,
-      ));
+    for (k, v) in tmp_tuples {
+      info!("{} {}", k, v);
+      result.insert(k, v);
     }
   }
-  (
-    Box::into_raw(tmp_buffer.into_boxed_slice()) as *mut c_char,
-    buffer_size,
-  )
+  result
+}
+
+pub fn hashmap_into_buffer(_pairs: &HashMap<String, String>, _buffer: &mut Vec<c_char>) {
+  let mut index = 0;
+  // write length of pairs
+  let pairs_len = _pairs.len() as u32;
+  for b in pairs_len.to_be_bytes().iter() {
+    _buffer[index] = *b as i8;
+    index += 1;
+  }
+  // write length of keys and values
+  for (key, value) in _pairs {
+    let key_len = key.len();
+    for b in key_len.to_be_bytes().iter() {
+      _buffer[index] = *b as i8;
+      index += 1;
+    }
+    let value_len = value.len();
+    for b in value_len.to_be_bytes().iter() {
+      _buffer[index] = *b as i8;
+      index += 1;
+    }
+  }
+  // write value of pairs
+  for (key, value) in _pairs {
+    for b in key.as_bytes().iter() {
+      _buffer[index] = *b as i8;
+      index += 1;
+    }
+    _buffer[index] = '\0' as i8;
+    index += 1;
+    for b in value.as_bytes().iter() {
+      _buffer[index] = *b as i8;
+      index += 1;
+    }
+    _buffer[index] = '\0' as i8;
+    index += 1;
+  }
 }
 
 pub fn export_hashmap(_pairs: &HashMap<String, String>) -> (*mut c_char, usize) {
-  hashmap_into_buffer(_pairs)
+  let buffer_size = buffer_size(_pairs);
+  let mut alloced_buffer = Vec::<c_char>::with_capacity(buffer_size);
+  unsafe {
+    alloced_buffer.set_len(buffer_size);
+  }
+  hashmap_into_buffer(_pairs, &mut alloced_buffer);
+  (
+    Box::into_raw(alloced_buffer.into_boxed_slice()) as *mut c_char,
+    buffer_size,
+  )
 }
 
 // ======================= Low-Level Proxy API Wrapper =============================
@@ -58,7 +141,7 @@ pub fn export_hashmap(_pairs: &HashMap<String, String>) -> (*mut c_char, usize) 
 // e.g \n\n\n$:authoritylocalhost:8000:path/:methodGET...
 // So we should destroy top change-line symbols and insert them to different headers.
 // e.g :authority: localhost:8000\n:path: /\n:method: GET\n...
-pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<Box<WasmData>, String> {
+pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<HashMap<String, String>, String> {
   let type_num = header_map_type_to_int(htype);
   let data_ptr: *mut c_char = null_mut::<c_char>();
   let size_ptr = Box::into_raw(Box::new(0));
@@ -66,10 +149,10 @@ pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<Box<WasmData>, Strin
     let code = proxy_get_header_map_pairs(type_num, &data_ptr, size_ptr);
     match WasmResult::try_from(code) {
       Ok(r) => match r {
-        WasmResult::Ok => Ok(Box::new(WasmData {
-          data: data_ptr,
-          len: *size_ptr,
-        })),
+        WasmResult::Ok => {
+          let header_map = buffer_into_hashmap(data_ptr, *size_ptr);
+          Ok(header_map)
+        }
         _ => Err(r.to_string()),
       },
       Err(e) => Err(e),
@@ -79,9 +162,15 @@ pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<Box<WasmData>, Strin
 
 pub fn set_header_map_pairs(htype: HeaderMapType, _pairs: &HashMap<String, String>) -> WasmResult {
   let type_num = header_map_type_to_int(htype);
-  let (buffer_ptr, buffer_size) = export_hashmap(_pairs);
+  let (buffer, size) = export_hashmap(_pairs);
   unsafe {
-    let code = proxy_set_header_map_pairs(type_num, buffer_ptr, buffer_size);
+    info!(
+      "data {}",
+      String::from_raw_parts(buffer as *mut u8, size, size)
+    );
+  }
+  unsafe {
+    let code = proxy_set_header_map_pairs(type_num, buffer, size);
     match WasmResult::try_from(code) {
       Ok(r) => r,
       Err(e) => {
