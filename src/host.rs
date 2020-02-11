@@ -37,10 +37,13 @@ pub fn proxy_on_context_create(_context_id: u32, _parent_context_id: u32) {
   }
 }
 
-// #[no_mangle]
-// pub fn proxy_on_configure(_root_context_id: u32, _vm_configuration_size: u32) -> u32 {
-//   get_root_context(_root_context_id).on_configure(_vm_configuration_size)
-// }
+#[no_mangle]
+pub fn proxy_on_configure(_root_context_id: u32, _vm_configuration_size: u32) -> u32 {
+  match get_root_context(_root_context_id).on_configure(_vm_configuration_size) {
+    true => 1,
+    false => 0,
+  }
+}
 
 #[no_mangle]
 pub fn proxy_on_tick(_root_context_id: u32) {

@@ -1,5 +1,7 @@
 use crate::host::*;
 use crate::types::*;
+use log::{info, warn};
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::os::raw::c_char;
 use std::ptr::null_mut;
@@ -13,6 +15,41 @@ impl WasmData {
   pub fn to_string(&self) -> String {
     unsafe { String::from_raw_parts(self.data as *mut u8, self.len, self.len) }
   }
+}
+
+pub fn hashmap_into_buffer(_pairs: &HashMap<String, String>) -> (*mut c_char, usize) {
+  let mut buffer_size = 0;
+  let mut tmp_buffer = Vec::<u8>::with_capacity(0);
+  for (key, value) in _pairs {
+    let key_size = key.as_bytes().len();
+    buffer_size += &key_size;
+    tmp_buffer.reserve(buffer_size);
+    unsafe {
+      tmp_buffer.append(&mut Vec::from_raw_parts(
+        key.as_ptr() as *mut u8,
+        key_size,
+        key_size,
+      ));
+    }
+    let value_size = value.as_bytes().len();
+    buffer_size += &value_size;
+    tmp_buffer.reserve(buffer_size);
+    unsafe {
+      tmp_buffer.append(&mut Vec::from_raw_parts(
+        value.as_ptr() as *mut u8,
+        value_size,
+        value_size,
+      ));
+    }
+  }
+  (
+    Box::into_raw(tmp_buffer.into_boxed_slice()) as *mut c_char,
+    buffer_size,
+  )
+}
+
+pub fn export_hashmap(_pairs: &HashMap<String, String>) -> (*mut c_char, usize) {
+  hashmap_into_buffer(_pairs)
 }
 
 // ======================= Low-Level Proxy API Wrapper =============================
@@ -36,6 +73,21 @@ pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<Box<WasmData>, Strin
         _ => Err(r.to_string()),
       },
       Err(e) => Err(e),
+    }
+  }
+}
+
+pub fn set_header_map_pairs(htype: HeaderMapType, _pairs: &HashMap<String, String>) -> WasmResult {
+  let type_num = header_map_type_to_int(htype);
+  let (buffer_ptr, buffer_size) = export_hashmap(_pairs);
+  unsafe {
+    let code = proxy_set_header_map_pairs(type_num, buffer_ptr, buffer_size);
+    match WasmResult::try_from(code) {
+      Ok(r) => r,
+      Err(e) => {
+        warn!("failed to convert: {}", e);
+        WasmResult::InternalFailure
+      }
     }
   }
 }

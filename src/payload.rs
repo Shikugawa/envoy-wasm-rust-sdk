@@ -4,11 +4,6 @@ use log::error;
 use std::collections::HashMap;
 
 // ====================== Request Header Processing API ===========================
-pub fn set_request_header_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
-  unimplemented!()
-  // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
-}
-
 pub fn get_request_header_pairs() -> Box<WasmData> {
   match get_header_map_pairs(HeaderMapType::RequestHeaders) {
     Ok(t) => t,
@@ -17,6 +12,11 @@ pub fn get_request_header_pairs() -> Box<WasmData> {
       panic!();
     }
   }
+}
+
+#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
+pub fn set_request_header_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
+  set_header_map_pairs(HeaderMapType::RequestHeaders, _pairs)
 }
 
 pub fn get_request_header(key: String) -> Box<WasmData> {
@@ -47,9 +47,9 @@ pub fn get_request_header_size() -> u32 {
 // ====================== Request Header Processing API ===========================
 
 // ====================== Response Header Processing API ===========================
-pub fn set_response_header_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
-  unimplemented!()
-  // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
+#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
+pub fn set_response_header_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
+  set_header_map_pairs(HeaderMapType::ResponseHeaders, _pairs)
 }
 
 pub fn get_response_header_pairs() -> Box<WasmData> {
@@ -90,9 +90,9 @@ pub fn get_response_header_size() -> u32 {
 // ====================== Response Header Processing API ===========================
 
 // ====================== Request Trailer Processing API ===========================
-pub fn set_request_trailer_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
-  unimplemented!()
-  // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
+#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
+pub fn set_request_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
+  set_header_map_pairs(HeaderMapType::RequestTrailers, _pairs)
 }
 
 pub fn get_request_trailer_pairs() -> Box<WasmData> {
@@ -133,9 +133,9 @@ pub fn get_request_trailer_size() -> u32 {
 // ====================== Request Trailer Processing API ===========================
 
 // ====================== Response Trailer Processing API ===========================
-pub fn set_response_trailer_pairs(_pairs: &HashMap<String, String>) -> Box<WasmData> {
-  unimplemented!()
-  // setHeaderMapPairs(HeaderMapType::RequestHeaders, pairs)
+#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
+pub fn set_response_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
+  set_header_map_pairs(HeaderMapType::ResponseTrailers, _pairs)
 }
 
 pub fn get_response_trailer_pairs() -> Box<WasmData> {

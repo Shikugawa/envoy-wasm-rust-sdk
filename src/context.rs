@@ -11,8 +11,8 @@ pub trait RootContext {
   fn on_start(&self, _configuration_size: u32) -> u32 {
     0
   }
-  fn on_configure(&self, _configuration_size: u32) -> u32 {
-    0
+  fn on_configure(&self, _configuration_size: u32) -> bool {
+    true
   }
   fn on_tick(&self) {}
 }
