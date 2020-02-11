@@ -6,7 +6,6 @@ use proxy_wasm::context::*;
 use proxy_wasm::envoy_log::*;
 use proxy_wasm::payload::*;
 use proxy_wasm::types::*;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 // =============== RootContext ============================
@@ -44,7 +43,6 @@ impl Context for SampleContext {
       for (k, v) in header {
         info!("{} {}", k, v);
       }
-      // info!("header pairs: {}", header.to_string());
     }
     {
       // let mut h = HashMap::new();
@@ -54,17 +52,17 @@ impl Context for SampleContext {
       // info!("header pairs: {}", header.to_string());
     }
     {
-      // let path = get_request_header(String::from(":path"));
-      // info!("prev path: {}", path.to_string());
-      // replace_request_header(":path".to_string(), "/blue".to_string());
-      // let path = get_request_header(String::from(":path"));
-      // info!("current path: {}", path.to_string());
-      // remove_request_header(String::from(":path"));
-      // add_request_header(String::from(":path"), "/green".to_string());
-      // let path = get_request_header(String::from(":path"));
-      // info!("next path: {}", path.to_string());
-      // let size = get_request_trailer_size();
-      // info!("size: {}", size);
+      let path = get_request_header(String::from(":path"));
+      info!("prev path: {}", path.to_string());
+      replace_request_header(":path".to_string(), "/blue".to_string());
+      let path = get_request_header(String::from(":path"));
+      info!("current path: {}", path.to_string());
+      remove_request_header(String::from(":path"));
+      add_request_header(String::from(":path"), "/green".to_string());
+      let path = get_request_header(String::from(":path"));
+      info!("next path: {}", path.to_string());
+      let size = get_request_trailer_size();
+      info!("size: {}", size);
     }
     FilterHeadersStatus::Continue
   }

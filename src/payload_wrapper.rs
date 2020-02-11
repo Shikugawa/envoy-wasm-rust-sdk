@@ -30,8 +30,8 @@ pub fn buffer_size(_pairs: &HashMap<String, String>) -> usize {
   size
 }
 
-pub fn buffer_into_hashmap(_buffer_ptr: *mut c_char, _size: usize) -> HashMap<String, String> {
-  let mut result = HashMap::new();
+pub fn buffer_into_hashmap(_buffer_ptr: *mut u8, _size: usize) -> HashMap<String, String> {
+  let mut result: HashMap<String, String> = HashMap::new();
   unsafe {
     let buffer = Vec::from_raw_parts(_buffer_ptr, _size, _size);
     // read 4 bytes to get hashmap size illustrated as usize
@@ -41,9 +41,8 @@ pub fn buffer_into_hashmap(_buffer_ptr: *mut c_char, _size: usize) -> HashMap<St
       buffer[2] as u8,
       buffer[3] as u8,
     ]);
-    result.reserve(pairs_size as usize);
-    info!("{}", pairs_size);
-    let mut tmp_tuples = Vec::<(String, String)>::new();
+    let mut byte_lengthes = Vec::<(u32, u32)>::new();
+    let mut key_value_index_starter = 0;
     let mut key_size = 0;
     for i in 0..(2 * pairs_size) {
       if i % 2 == 0 {
@@ -63,22 +62,26 @@ pub fn buffer_into_hashmap(_buffer_ptr: *mut c_char, _size: usize) -> HashMap<St
           buffer[7 + 4 * i as usize] as u8,
         ]);
         if key_size != 0 && value_size != 0 {
-          let data_ptr: *mut c_char = null_mut::<c_char>();
-          tmp_tuples.push((
-            String::from_raw_parts(data_ptr as *mut u8, key_size as usize, key_size as usize),
-            String::from_raw_parts(
-              data_ptr as *mut u8,
-              value_size as usize,
-              value_size as usize,
-            ),
-          ));
+          byte_lengthes.push((key_size, value_size));
           key_size = 0;
         }
+        key_value_index_starter = (7 + 4 * i) + 1;
       }
     }
-    for (k, v) in tmp_tuples {
-      info!("{} {}", k, v);
-      result.insert(k, v);
+    for (key_size, value_size) in byte_lengthes {
+      let key_str = String::from_utf8(
+        buffer[key_value_index_starter as usize..(key_value_index_starter + key_size) as usize]
+          .to_vec(),
+      )
+      .unwrap();
+      key_value_index_starter += key_size + 1;
+      let value_str = String::from_utf8(
+        buffer[key_value_index_starter as usize..(key_value_index_starter + value_size) as usize]
+          .to_vec(),
+      )
+      .unwrap();
+      key_value_index_starter += value_size + 1;
+      result.insert(key_str, value_str);
     }
   }
   result
@@ -150,7 +153,7 @@ pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<HashMap<String, Stri
     match WasmResult::try_from(code) {
       Ok(r) => match r {
         WasmResult::Ok => {
-          let header_map = buffer_into_hashmap(data_ptr, *size_ptr);
+          let header_map = buffer_into_hashmap(data_ptr as *mut u8, *size_ptr);
           Ok(header_map)
         }
         _ => Err(r.to_string()),
