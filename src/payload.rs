@@ -1,17 +1,10 @@
 use crate::payload_wrapper::*;
 use crate::types::*;
-use log::error;
 use std::collections::HashMap;
 
 // ====================== Request Header Processing API ===========================
-pub fn get_request_header_pairs() -> HashMap<String, String> {
-  match get_header_map_pairs(HeaderMapType::RequestHeaders) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_request_header_pairs() -> Result<HashMap<String, String>, String> {
+  get_header_map_pairs(HeaderMapType::RequestHeaders)
 }
 
 #[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
@@ -19,14 +12,8 @@ pub fn set_request_header_pairs(_pairs: &HashMap<String, String>) -> WasmResult 
   set_header_map_pairs(HeaderMapType::RequestHeaders, _pairs)
 }
 
-pub fn get_request_header(key: String) -> Box<WasmData> {
-  match get_header_map_value(HeaderMapType::RequestHeaders, key) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_request_header(key: String) -> Result<Box<WasmData>, String> {
+  get_header_map_value(HeaderMapType::RequestHeaders, key)
 }
 
 pub fn add_request_header(key: String, value: String) -> WasmResult {
@@ -52,24 +39,12 @@ pub fn set_response_header_pairs(_pairs: &HashMap<String, String>) -> WasmResult
   set_header_map_pairs(HeaderMapType::ResponseHeaders, _pairs)
 }
 
-pub fn get_response_header_pairs() -> HashMap<String, String> {
-  match get_header_map_pairs(HeaderMapType::ResponseHeaders) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_response_header_pairs() -> Result<HashMap<String, String>, String> {
+  get_header_map_pairs(HeaderMapType::ResponseHeaders)
 }
 
-pub fn get_response_header(key: String) -> Box<WasmData> {
-  match get_header_map_value(HeaderMapType::ResponseHeaders, key) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_response_header(key: String) -> Result<Box<WasmData>, String> {
+  get_header_map_value(HeaderMapType::ResponseHeaders, key)
 }
 
 pub fn add_response_header(key: String, value: String) -> WasmResult {
@@ -95,24 +70,12 @@ pub fn set_request_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResult
   set_header_map_pairs(HeaderMapType::RequestTrailers, _pairs)
 }
 
-pub fn get_request_trailer_pairs() -> HashMap<String, String> {
-  match get_header_map_pairs(HeaderMapType::RequestTrailers) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_request_trailer_pairs() -> Result<HashMap<String, String>, String> {
+  get_header_map_pairs(HeaderMapType::RequestTrailers)
 }
 
-pub fn get_request_trailer(key: String) -> Box<WasmData> {
-  match get_header_map_value(HeaderMapType::RequestTrailers, key) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_request_trailer(key: String) -> Result<Box<WasmData>, String> {
+  get_header_map_value(HeaderMapType::RequestTrailers, key)
 }
 
 pub fn add_request_trailer(key: String, value: String) -> WasmResult {
@@ -138,24 +101,12 @@ pub fn set_response_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResul
   set_header_map_pairs(HeaderMapType::ResponseTrailers, _pairs)
 }
 
-pub fn get_response_trailer_pairs() -> HashMap<String, String> {
-  match get_header_map_pairs(HeaderMapType::ResponseTrailers) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_response_trailer_pairs() -> Result<HashMap<String, String>, String> {
+  get_header_map_pairs(HeaderMapType::ResponseTrailers)
 }
 
-pub fn get_response_trailer(key: String) -> Box<WasmData> {
-  match get_header_map_value(HeaderMapType::ResponseTrailers, key) {
-    Ok(t) => t,
-    Err(e) => {
-      error!("{}", e);
-      panic!();
-    }
-  }
+pub fn get_response_trailer(key: String) -> Result<Box<WasmData>, String> {
+  get_header_map_value(HeaderMapType::ResponseTrailers, key)
 }
 
 pub fn add_response_trailer(key: String, value: String) -> WasmResult {

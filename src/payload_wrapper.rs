@@ -140,10 +140,6 @@ pub fn export_hashmap(_pairs: &HashMap<String, String>) -> (*mut c_char, usize) 
 
 // ======================= Low-Level Proxy API Wrapper =============================
 
-// TODO(Rei Shimizu): Output pairs data should be non-readable
-// e.g \n\n\n$:authoritylocalhost:8000:path/:methodGET...
-// So we should destroy top change-line symbols and insert them to different headers.
-// e.g :authority: localhost:8000\n:path: /\n:method: GET\n...
 pub fn get_header_map_pairs(htype: HeaderMapType) -> Result<HashMap<String, String>, String> {
   let type_num = header_map_type_to_int(htype);
   let data_ptr: *mut c_char = null_mut::<c_char>();
