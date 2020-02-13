@@ -179,3 +179,7 @@ pub fn filter_status_to_int(status: FilterStatus) -> u32 {
 pub fn header_map_type_to_int(htype: HeaderMapType) -> u32 {
   htype as u32
 }
+
+pub fn grpc_status_to_int(status: GrpcStatus) -> u32 {
+  status as u32
+}

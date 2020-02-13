@@ -157,5 +157,17 @@ extern "C" {
     _key_size: usize,
   ) -> u32;
   pub fn proxy_get_header_map_size(_type: u32, _value_size_ptr: *mut usize) -> u32;
-// ====================== Low-Level Proxy Header/Header/Metadata API ===========================
+  // ====================== Low-Level Proxy Header/Header/Metadata API ===========================
+  // ====================== Low-Level Proxy Reply/Route/Continue API ===========================
+  pub fn proxy_send_local_response(
+    response_code: u32,
+    _details_ptr: *const c_char,
+    _details_size: usize,
+    _body_ptr: *const c_char,
+    _body_size: usize,
+    _additional_response_header_pairs_ptr: *const c_char,
+    _additional_response_header_pairs_size: usize,
+    _grpc_status: u32,
+  ) -> u32;
+// ====================== Low-Level Proxy Reply/Route/Continue API ===========================
 }
