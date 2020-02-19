@@ -40,14 +40,25 @@ impl Context for SampleContext {
   }
 
   fn on_request_headers(&self, _headers: u32) -> FilterHeadersStatus {
-    send_local_response(
-      200,
-      "message\n".to_string(),
-      "message\n".to_string(),
-      &HashMap::new(),
-      GrpcStatus::Ok,
-    );
-    FilterHeadersStatus::StopIteration
+    // {
+    //   let header = get_request_header_pairs();
+    //   for (k, v) in header.unwrap().iter() {
+    //     info!("{} {}", k, v);
+    //   }
+    // }
+    {
+      let mut h = HashMap::new();
+      let header = get_request_header_pairs().unwrap();
+      h.insert(":path".to_string(), "/value".to_string());
+      h.insert(":method".to_string(), "GET".to_string());
+      h.insert("Host".to_string(), "example.com".to_string());
+      set_request_header_pairs(&h);
+      let header = get_request_header_pairs().unwrap();
+      for (k, v) in header.iter() {
+        info!("{} {}", k, v);
+      }
+    }
+    FilterHeadersStatus::Continue
   }
 }
 

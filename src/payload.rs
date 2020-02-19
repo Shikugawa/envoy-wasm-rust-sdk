@@ -7,7 +7,6 @@ pub fn get_request_header_pairs() -> Result<HashMap<String, String>, String> {
   get_header_map_pairs(HeaderMapType::RequestHeaders)
 }
 
-#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
 pub fn set_request_header_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
   set_header_map_pairs(HeaderMapType::RequestHeaders, _pairs)
 }
@@ -34,7 +33,6 @@ pub fn get_request_header_size() -> u32 {
 // ====================== Request Header Processing API ===========================
 
 // ====================== Response Header Processing API ===========================
-#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
 pub fn set_response_header_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
   set_header_map_pairs(HeaderMapType::ResponseHeaders, _pairs)
 }
@@ -65,7 +63,6 @@ pub fn get_response_header_size() -> u32 {
 // ====================== Response Header Processing API ===========================
 
 // ====================== Request Trailer Processing API ===========================
-#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
 pub fn set_request_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
   set_header_map_pairs(HeaderMapType::RequestTrailers, _pairs)
 }
@@ -96,7 +93,6 @@ pub fn get_request_trailer_size() -> u32 {
 // ====================== Request Trailer Processing API ===========================
 
 // ====================== Response Trailer Processing API ===========================
-#[deprecated(note = "assertion failure when called proxy_set_header_map_pairs")]
 pub fn set_response_trailer_pairs(_pairs: &HashMap<String, String>) -> WasmResult {
   set_header_map_pairs(HeaderMapType::ResponseTrailers, _pairs)
 }

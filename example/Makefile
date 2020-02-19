@@ -5,4 +5,4 @@ nm:
 	wasm-objdump -d target/wasm32-unknown-unknown/release/example.wasm | grep func
 
 run:
-	envoy-wasm --config-path ./envoy.yaml --concurrency 1
+	envoy-static --config-path ./envoy.yaml --concurrency 1

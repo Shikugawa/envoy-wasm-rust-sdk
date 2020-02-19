@@ -43,12 +43,6 @@ pub fn set_header_map_pairs(htype: HeaderMapType, _pairs: &HashMap<String, Strin
   let type_num = header_map_type_to_int(htype);
   let (buffer, size) = export_hashmap(_pairs);
   unsafe {
-    info!(
-      "data {}",
-      String::from_raw_parts(buffer as *mut u8, size, size)
-    );
-  }
-  unsafe {
     let code = proxy_set_header_map_pairs(type_num, buffer, size);
     match WasmResult::try_from(code) {
       Ok(r) => r,

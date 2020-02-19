@@ -82,19 +82,19 @@ pub fn hashmap_into_buffer(_pairs: &HashMap<String, String>, _buffer: &mut Vec<c
   let mut index = 0;
   // write length of pairs
   let pairs_len = _pairs.len() as u32;
-  for b in pairs_len.to_be_bytes().iter() {
+  for b in pairs_len.to_le_bytes().iter() {
     _buffer[index] = *b as i8;
     index += 1;
   }
   // write length of keys and values
   for (key, value) in _pairs {
     let key_len = key.len();
-    for b in key_len.to_be_bytes().iter() {
+    for b in key_len.to_le_bytes().iter() {
       _buffer[index] = *b as i8;
       index += 1;
     }
     let value_len = value.len();
-    for b in value_len.to_be_bytes().iter() {
+    for b in value_len.to_le_bytes().iter() {
       _buffer[index] = *b as i8;
       index += 1;
     }
